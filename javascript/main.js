@@ -16,39 +16,41 @@ UI.enterPress = () => {
 }
 
 UI.ClearPL = () => {
-    let sideBar = document.querySelector('.js-playlist');
     let clear = document.querySelector('.js-clear');
     clear.addEventListener('click', () => {
-        sidebar.innerHTML = "";
+        let sideBar = document.querySelector('.js-playlist');
+        sideBar.innerHTML = "";
         localStorage.clear();
     });
 }
-UI.ClearPL();
-UI.enterPress();
+
 UI.SubmitClick = () => {
     document.querySelector(".js-submit").addEventListener('click', () => {
         UI.LoadResulte();
     });
 }
-UI.SubmitClick();
+UI.deleteSong = (elem) => {
+    let id = elem.parentNode.dataset.id;
+    console.log("click");
+    localStorage.removeItem(id.toString());
+    elem.parentNode.remove();
+}
+
 let SoundCloudAPI = {};
 SoundCloudAPI.init = () => {
     SC.initialize({ client_id: 'cd9be64eeb32d1741c17cb39e41d254d' });
 };
-SoundCloudAPI.init();
+
 SoundCloudAPI.getTrack = (inputVlue) => {
     SC.get('/tracks', {
         q: inputVlue
     }).then((tracks) => {
-        console.log(tracks);
         SoundCloudAPI.renderTracks(tracks);
     });
 }
 
-
 SoundCloudAPI.renderTracks = (track) => {
     track.forEach(element => {
-
         //card
         let card = document.createElement('div');
         card.classList.add("card");
@@ -80,9 +82,8 @@ SoundCloudAPI.renderTracks = (track) => {
 
         button.appendChild(icon);
         button.appendChild(buttonText);
-        button.addEventListener('click', function () {
-            console.log(element.permalink_url);
-            SoundCloudAPI.getEmbed(element.permalink_url);
+        button.addEventListener('click', () => {
+            SoundCloudAPI.getEmbed(element.permalink_url, element.id);
         });
 
 
@@ -99,20 +100,56 @@ SoundCloudAPI.renderTracks = (track) => {
     });
 }
 
-SoundCloudAPI.getEmbed = (embadURL) => {
-    console.log("click");
+SoundCloudAPI.getEmbed = (embadURL, id) => {
     SC.oEmbed(embadURL, {
-        auto_play: true
-    }).then(function (embed) {
-        console.log('oEmbed response: ', embed);
+        auto_play: true,
+        buying: false,
+        show_artwork: false,
+        show_playcount: false,
+        show_user: false
+
+    }).then((embed) => {
+        //play list container 
         let sideBar = document.querySelector('.js-playlist');
-        let box = document.createElement('div');
-        box.innerHTML = embed.html;
-        sideBar.insertBefore(box, sideBar.firstChild);
-        localStorage.setItem("key", sideBar.innerHTML);
+
+        //the delete song button 
+        let closeBtn = `<button class="ui place google plus circular button icon js-deleteOne" onClick="UI.deleteSong(this);"><i class="close icon"></i></button>`;
+
+        //song container
+        let box = `<div class="re" data-id="${id}">
+            ${embed.html}
+            ${closeBtn}
+        </div>`;
+        // console.log(box);
+
+        sideBar.innerHTML += box;
+        id = `${id}`;  // id.toString()
+        localStorage.setItem(id, box);
+        // console.log(localStorage);
+        // console.log(localStorage.getItem(id));
     });
 }
 
-let sidebar = document.querySelector('.js-playlist');
-sidebar.innerHTML = localStorage.getItem("key");
-localStorage.clear();
+
+function allStorage() {
+    let sidebar = document.querySelector('.js-playlist');
+    // sidebar.innerHTML = "";
+    let keys = Object.keys(localStorage);
+    console.log(keys);
+    // console.log(localStorage.getItem(keys[0]));
+
+    for (let i = 0; i < keys.length; i++) {
+        console.log(localStorage.getItem(keys[i]));
+        console.log(keys[i]);
+        sidebar.innerHTML += localStorage.getItem(keys[i]);
+    }
+}
+
+let main = () => {
+    UI.enterPress();
+    UI.ClearPL();
+    UI.SubmitClick();
+    SoundCloudAPI.init();
+    allStorage();
+}
+main();
